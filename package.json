@@ -1,0 +1,12 @@
+{
+  "name": "open-ppt",
+  "private": true,
+  "type": "module",
+  "description": "HTML architecture briefings with 1K/2K PNG sequences and multi-page PDF export",
+  "scripts": {
+    "export": "node scripts/export-deck.mjs"
+  },
+  "optionalDependencies": {
+    "playwright-core": "^1.63.0"
+  }
+}

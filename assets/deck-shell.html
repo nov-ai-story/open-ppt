@@ -29,6 +29,9 @@
       --sh: 720px;
       --cover-image: none;
     }
+    html[data-ratio="16-9"] { --sw: 1280px; --sh: 720px; }
+    html[data-ratio="16-10"] { --sw: 1280px; --sh: 800px; }
+    html[data-ratio="4-3"] { --sw: 1280px; --sh: 960px; }
     * { box-sizing: border-box; }
     html, body {
       margin: 0;
@@ -297,11 +300,48 @@
       h1 { font-size: 28px; }
       .kicker { font-size: 18px; }
     }
+    html[data-ratio="4-3"] .objects { grid-template-columns: repeat(3, 1fr); }
+    html[data-ratio="4-3"] .pipe { grid-template-columns: repeat(2, 1fr); }
+    html[data-ratio="4-3"] .seq { grid-template-columns: repeat(3, 1fr); }
+    html[data-ratio="4-3"] .coords { grid-template-columns: repeat(2, 1fr); }
+    html[data-ratio="4-3"] .costs { grid-template-columns: 1fr; }
+    html[data-ratio="4-3"] .cost { min-height: 0; }
+    @media (max-width: 860px) {
+      html[data-ratio="4-3"] .objects,
+      html[data-ratio="4-3"] .pipe,
+      html[data-ratio="4-3"] .seq,
+      html[data-ratio="4-3"] .coords,
+      html[data-ratio="4-3"] .costs { grid-template-columns: 1fr; }
+    }
+
+    .maker label { display: block; margin: 10px 0 4px; color: #aab5af; }
+    .maker select, .maker button {
+      font: inherit; width: 100%; margin-bottom: 8px;
+      background: #1b2420; color: #e8eee9; border: 1px solid #3d4a44;
+      border-radius: 6px; padding: 6px 8px;
+    }
+    .maker button { cursor: pointer; }
+    .maker .px { font-family: var(--mono); font-size: 12px; color: var(--amber); margin: 0 0 12px; }
+
+    body.exporting {
+      display: block !important;
+      background: #000;
+    }
+    body.exporting .viewport { display: block; height: auto; overflow: visible; }
+    body.exporting .stage { transform: none !important; }
+    body.exporting .hud,
+    body.exporting .notes,
+    body.exporting .preview-panel { display: none !important; }
+
     @media print {
-      body { background: #fff; }
       .hud, .notes, .preview-panel { display: none !important; }
-      .stage { transform: none !important; width: 100%; height: auto; }
-      .slide { position: relative; display: flex !important; page-break-after: always; height: 720px; }
+      body { background: #fff; display: block; }
+      .viewport { display: block; height: auto; overflow: visible; }
+      .stage { transform: none !important; width: var(--sw); height: auto; }
+      .slide {
+        position: relative; display: flex !important;
+        width: var(--sw); height: var(--sh); page-break-after: always; break-after: page;
+      }
     }
     @media (prefers-reduced-motion: reduce) {
       * { transition: none !important; }
@@ -401,6 +441,23 @@
   <aside class="preview-panel" id="preview">
     <h2>预览概要</h2>
     <p id="preview-body"></p>
+    <div class="maker">
+      <h2>比例与导出</h2>
+      <label for="ratio">比例</label>
+      <select id="ratio">
+        <option value="16:9">16:9</option>
+        <option value="16:10">16:10</option>
+        <option value="4:3">4:3</option>
+      </select>
+      <label for="res">导出分辨率</label>
+      <select id="res">
+        <option value="1k">1K（长边 1920）</option>
+        <option value="2k" selected>2K（长边 2560）</option>
+      </select>
+      <p class="px" id="export-px"></p>
+      <button type="button" id="print-pdf">浏览器打印 PDF（应急）</button>
+      <p>正式 PNG / 多页 PDF 用 <span class="mono">scripts/export-deck.mjs</span>。</p>
+    </div>
   </aside>
   <div class="notes" id="notes"></div>
   <div class="hud">
@@ -410,7 +467,15 @@
   </div>
   <p class="sr-only" id="live"></p>
   <script>
-    // 固定 1280×720 逻辑画布，按视口等比缩放；窄屏改走文档流，不拉伸字体。
+    // 逻辑画布宽度 1280；高度随比例变。导出时用 deviceScaleFactor 拉到 1K/2K，不改编写字号。
+    const RATIOS = {
+      "16:9": { attr: "16-9", w: 1280, h: 720 },
+      "16:10": { attr: "16-10", w: 1280, h: 800 },
+      "4:3": { attr: "4-3", w: 1280, h: 960 },
+    };
+    const RES_SCALE = { "1k": 1.5, "2k": 2 };
+
+    const params = new URLSearchParams(location.search);
     const slides = [...document.querySelectorAll(".slide")];
     const stage = document.getElementById("stage");
     const notesEl = document.getElementById("notes");
@@ -418,11 +483,69 @@
     const live = document.getElementById("live");
     const dots = document.getElementById("dots");
     const hudPage = document.getElementById("hud-page");
-    const previewMode = new URLSearchParams(location.search).has("preview");
+    const ratioSel = document.getElementById("ratio");
+    const resSel = document.getElementById("res");
+    const exportPx = document.getElementById("export-px");
+    const previewMode = params.has("preview");
     if (previewMode) document.body.classList.add("preview");
+    if (params.has("export")) document.body.classList.add("exporting");
 
-    let index = Math.max(0, Math.min(slides.length - 1, Number(location.hash.slice(1)) - 1 || 0));
+    let ratio = RATIOS[params.get("ratio")] ? params.get("ratio") : "16:9";
+    let res = RES_SCALE[params.get("res")] ? params.get("res") : "2k";
+    let index = Math.max(0, Math.min(slides.length - 1, Number(location.hash.replace("#", "").split("&")[0]) - 1 || 0));
     let notesOn = false;
+
+    ratioSel.value = ratio;
+    resSel.value = res;
+
+    function applyRatio() {
+      const spec = RATIOS[ratio];
+      document.documentElement.dataset.ratio = spec.attr;
+      const scale = RES_SCALE[res];
+      exportPx.textContent = "导出 " + res.toUpperCase() + "：" + (spec.w * scale) + " × " + (spec.h * scale);
+    }
+
+    function queryString() {
+      const next = new URLSearchParams();
+      if (previewMode) next.set("preview", "1");
+      if (params.has("export")) next.set("export", "1");
+      next.set("ratio", ratio);
+      next.set("res", res);
+      return next.toString();
+    }
+
+    function fitStage() {
+      if (document.body.classList.contains("exporting")) {
+        stage.style.transform = "none";
+        return;
+      }
+      if (window.matchMedia("(max-width: 860px)").matches) {
+        stage.style.transform = "none";
+        return;
+      }
+      const spec = RATIOS[ratio];
+      const padX = document.body.classList.contains("preview") ? 300 : 24;
+      const padY = 48;
+      const sx = (window.innerWidth - padX) / spec.w;
+      const sy = (window.innerHeight - padY) / spec.h;
+      stage.style.transform = "scale(" + Math.max(0.35, Math.min(sx, sy)) + ")";
+    }
+
+    function show(i) {
+      index = i;
+      slides.forEach((slide, n) => slide.classList.toggle("active", n === i));
+      [...dots.children].forEach((d, n) => d.classList.toggle("on", n === i));
+      const slide = slides[i];
+      hudPage.textContent = String(i + 1).padStart(2, "0") + " / " + String(slides.length).padStart(2, "0");
+      notesEl.textContent = slide.dataset.notes || "";
+      live.textContent = "第 " + (i + 1) + " 页 " + slide.dataset.title;
+      previewEl.innerHTML =
+        "<p><b>第 " + (i + 1) + " 页：" + slide.dataset.title + "</b></p>" +
+        "<p>页面类型：" + slide.dataset.type + "</p>" +
+        "<p>布局：" + slide.dataset.layout + "</p>" +
+        "<p>备注：" + (slide.dataset.notes || "") + "</p>";
+      history.replaceState(null, "", "?" + queryString() + "#" + (i + 1));
+    }
 
     slides.forEach((_, i) => {
       const b = document.createElement("button");
@@ -432,35 +555,18 @@
       dots.appendChild(b);
     });
 
-    function fitStage() {
-      if (window.matchMedia("(max-width: 860px)").matches) {
-        stage.style.transform = "none";
-        return;
-      }
-      const padX = document.body.classList.contains("preview") ? 300 : 24;
-      const padY = 48;
-      const sx = (window.innerWidth - padX) / 1280;
-      const sy = (window.innerHeight - padY) / 720;
-      const s = Math.max(0.35, Math.min(sx, sy));
-      stage.style.transform = "scale(" + s + ")";
-    }
-
-    function show(i) {
-      index = i;
-      slides.forEach((slide, n) => slide.classList.toggle("active", n === i));
-      [...dots.children].forEach((d, n) => d.classList.toggle("on", n === i));
-      const slide = slides[i];
-      const title = slide.dataset.title;
-      hudPage.textContent = String(i + 1).padStart(2, "0") + " / " + String(slides.length).padStart(2, "0");
-      notesEl.textContent = slide.dataset.notes || "";
-      live.textContent = "第 " + (i + 1) + " 页 " + title;
-      previewEl.innerHTML =
-        "<p><b>第 " + (i + 1) + " 页：" + title + "</b></p>" +
-        "<p>页面类型：" + slide.dataset.type + "</p>" +
-        "<p>布局：" + slide.dataset.layout + "</p>" +
-        "<p>备注：" + (slide.dataset.notes || "") + "</p>";
-      history.replaceState(null, "", "#" + (i + 1) + (previewMode ? "" : ""));
-    }
+    ratioSel.addEventListener("change", () => {
+      ratio = ratioSel.value;
+      applyRatio();
+      fitStage();
+      show(index);
+    });
+    resSel.addEventListener("change", () => {
+      res = resSel.value;
+      applyRatio();
+      show(index);
+    });
+    document.getElementById("print-pdf").addEventListener("click", () => window.print());
 
     document.addEventListener("keydown", (event) => {
       if (event.key === "ArrowRight" || event.key === "PageDown" || event.key === " ") {
@@ -482,6 +588,7 @@
       }
     });
 
+    applyRatio();
     window.addEventListener("resize", fitStage);
     fitStage();
     show(index);
