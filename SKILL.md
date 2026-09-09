@@ -27,26 +27,13 @@ description: >
 
 ## 工作流
 
-1. **收集材料**  
-   列出教程、源码、图片、交接文档。事实、推断、拟写文案分开。缺证据的结论先标成待核，不编数字。
-
-2. **一次确认**  
-   材料不足以决定听众或产出时，才问 [references/intake.md](references/intake.md)。一次问完，允许「默认推荐」。
-
-3. **冻结蓝图**  
-   按 [references/blueprint.md](references/blueprint.md) 写页表：本页问题、学习结果、证据。从听众能复述的那条主链路倒推。页数按需要定，不凑章节目录。
-
-4. **复制视觉壳**  
-   复制 [assets/deck-shell.html](assets/deck-shell.html) 再填内容。视觉规则见 [references/visual-system.md](references/visual-system.md)。先定分层、数据流、序列、成本图，再写句子。
-
-5. **实现页面**  
-   替换壳里的示例页。保留舞台缩放、键盘、备注、预览侧栏。封面可用 `--cover-image: url("...")`。观众页不放制作诊断；诊断只进 `data-notes` 和 `?preview=1`。
-
-6. **预览与验收**  
-   按 [references/preview.md](references/preview.md) 看真实 HTML。先查叙事，再查主次，再调密度。不要用 `overflow: hidden` 掩盖裁切。
-
-7. **交付**  
-   报告 HTML 绝对路径、页数、检查过的视口、限定结论。没有打开过渲染结果，就不要写「视觉通过」。
+1. **收集材料**：列出教程、源码、图片、交接文档。事实、推断、拟写文案分开。缺证据的结论先标成待核，不编数字。
+2. **一次确认**：材料不足以决定听众或产出时，才问 [references/intake.md](references/intake.md)。一次问完，允许「默认推荐」。
+3. **冻结蓝图**：按 [references/blueprint.md](references/blueprint.md) 写页表：本页问题、学习结果、证据。从听众能复述的那条主链路倒推。页数按需要定，不凑章节目录。
+4. **复制视觉壳**：复制 [assets/deck-shell.html](assets/deck-shell.html) 再填内容。视觉规则见 [references/visual-system.md](references/visual-system.md)。先定分层、数据流、序列、成本图，再写句子。
+5. **实现页面**：替换壳里的示例页。保留舞台缩放、键盘、备注、预览侧栏。封面可用 `--cover-image: url("...")`。观众页不放制作诊断；诊断只进 `data-notes` 和 `?preview=1`。
+6. **预览与验收**：按 [references/preview.md](references/preview.md) 看真实 HTML。先查叙事，再查主次，再调密度。不要用 `overflow: hidden` 掩盖裁切。
+7. **交付**：报告 HTML 绝对路径、页数、检查过的视口、限定结论。没有打开过渲染结果，就不要写「视觉通过」。
 
 ## 硬规则
 
