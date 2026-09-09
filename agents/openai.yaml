@@ -1,0 +1,4 @@
+interface:
+  display_name: "Open PPT"
+  short_description: "先冻结教学蓝图，再生成可翻页的 HTML 架构导读"
+  default_prompt: "使用 open-ppt：先按学习目标压成每页一个问题的蓝图，再复制 deck-shell.html 做成约 10 分钟的 HTML 架构导读，并做视口验收。"
